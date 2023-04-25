@@ -124,6 +124,30 @@ getRP2MC_mass(ROOT::VecOps::RVec<int> recind,
 }
 
 ROOT::VecOps::RVec<int>
+getRP2MC_genStat(ROOT::VecOps::RVec<int> recind, ROOT::VecOps::RVec<int> mcind,
+                 ROOT::VecOps::RVec<edm4hep::ReconstructedParticleData> reco,
+                 ROOT::VecOps::RVec<edm4hep::MCParticleData> mc) {
+  ROOT::VecOps::RVec<int> result;
+  result.resize(reco.size(), -1.);
+  for (unsigned int i = 0; i < recind.size(); i++) {
+    result[recind.at(i)] = mc.at(mcind.at(i)).generatorStatus;
+  }
+  return result;
+}
+
+ROOT::VecOps::RVec<int>
+getRP2MC_simStat(ROOT::VecOps::RVec<int> recind, ROOT::VecOps::RVec<int> mcind,
+                 ROOT::VecOps::RVec<edm4hep::ReconstructedParticleData> reco,
+                 ROOT::VecOps::RVec<edm4hep::MCParticleData> mc) {
+  ROOT::VecOps::RVec<int> result;
+  result.resize(reco.size(), -1.);
+  for (unsigned int i = 0; i < recind.size(); i++) {
+    result[recind.at(i)] = mc.at(mcind.at(i)).simulatorStatus;
+  }
+  return result;
+}
+
+ROOT::VecOps::RVec<int>
 getRP2MC_index(ROOT::VecOps::RVec<int> recind,
 					 ROOT::VecOps::RVec<int> mcind,
 					 ROOT::VecOps::RVec<edm4hep::ReconstructedParticleData> reco) {

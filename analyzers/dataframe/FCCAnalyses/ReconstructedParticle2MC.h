@@ -76,6 +76,20 @@ namespace ReconstructedParticle2MC{
 					   ROOT::VecOps::RVec<edm4hep::ReconstructedParticleData> reco,
 					   ROOT::VecOps::RVec<edm4hep::MCParticleData> mc);
 
+  /// Return the generator status of the mc particle associated to a
+  /// reconstructed particle
+  ROOT::VecOps::RVec<int>
+  getRP2MC_genStat(ROOT::VecOps::RVec<int> recin, ROOT::VecOps::RVec<int> mcin,
+                   ROOT::VecOps::RVec<edm4hep::ReconstructedParticleData> reco,
+                   ROOT::VecOps::RVec<edm4hep::MCParticleData> mc);
+
+  /// Return the simulator status of the mc particle associated to a
+  /// reconstructed particle
+  ROOT::VecOps::RVec<int>
+  getRP2MC_simStat(ROOT::VecOps::RVec<int> recin, ROOT::VecOps::RVec<int> mcin,
+                   ROOT::VecOps::RVec<edm4hep::ReconstructedParticleData> reco,
+                   ROOT::VecOps::RVec<edm4hep::MCParticleData> mc);
+
   /// Return the D0 of a track to a reconstructed particle
   ROOT::VecOps::RVec<float> getRP2MC_charge (ROOT::VecOps::RVec<int> recin,
 					     ROOT::VecOps::RVec<int> mcin,
