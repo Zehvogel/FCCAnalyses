@@ -7,6 +7,8 @@
 #include "fastjet/PseudoJet.hh"
 #include "fastjet/Selector.hh"
 
+#include "fastjet/contrib/FlavInfo.hh"
+
 namespace JetClustering {
 
   clustering_kt::clustering_kt(
@@ -320,4 +322,10 @@ namespace JetClustering {
     return FCCAnalyses::JetClusteringUtils::build_FCCAnalysesJet(pjets, dmerge, dmerge_max);
   }
 
+  // Should probably put all the flavour stuff in a separate thing 
+  void add_flavours(std::vector<fastjet::PseudoJet>& jets, const std::vector<int>& flavours) {
+    for (unsigned int i = 0; i < jets.size(); ++i) {
+      jets[i].set_user_info(new fastjet::contrib::FlavHistory(flavours[i]));
+    }
+  }
 }  // namespace JetClustering
