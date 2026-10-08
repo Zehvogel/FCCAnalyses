@@ -7,7 +7,7 @@
 #include "fastjet/PseudoJet.hh"
 #include "fastjet/Selector.hh"
 
-#include "fastjet/contrib/FlavInfo.hh"
+// #include "fastjet/contrib/FlavInfo.hh"
 
 namespace JetClustering {
 
@@ -328,4 +328,75 @@ namespace JetClustering {
       jets[i].set_user_info(new fastjet::contrib::FlavHistory(flavours[i]));
     }
   }
+
+  std::vector<std::string> get_flavours(const std::vector<fastjet::PseudoJet>& jets) {
+    std::vector<std::string> flavours;
+    for (unsigned int i = 0; i < jets.size(); ++i) {
+      auto flv_info = fastjet::contrib::FlavHistory::current_flavor_of(jets[i]);
+      flavours.push_back(flv_info.description());
+    }
+    return flavours;
+  }
+
+  std::vector<int> get_b_content(const std::vector<fastjet::PseudoJet>& jets) {
+    std::vector<int> b_content;
+    for (unsigned int i = 0; i < jets.size(); ++i) {
+      auto flv_info = fastjet::contrib::FlavHistory::current_flavor_of(jets[i]);
+      b_content.push_back(flv_info[5]);
+    }
+    return b_content;
+  }
+
+  flv_clustering_ee_kt::flv_clustering_ee_kt(int arg_exclusive, float arg_cut, int arg_sorted, int arg_recombination) {
+    _exclusive = arg_exclusive;
+    _cut = arg_cut;
+    _sorted = arg_sorted;
+    _recombination = arg_recombination;
+
+    // initialize jet algorithm
+    _jetAlgorithm = fastjet::JetAlgorithm::ee_kt_algorithm;
+
+    // initialize recombination scheme
+    _recombScheme = FCCAnalyses::JetClusteringUtils::recomb_scheme(_recombination);
+
+    // define the clustering sequence and jet definition
+    // fastjet::JetDefinition base_jet_def = fastjet::JetDefinition(_jetAlgorithm, _recombScheme);
+    fastjet::JetDefinition base_jet_def = fastjet::JetAlgorithm::ee_kt_algorithm;
+    base_jet_def.set_recombiner(&_flav_recombiner);
+
+    // The main free parameter, alpha, in the uij distance, 
+    //   uij = max(pt_i, pt_j)^alpha min(pt_i, pt_j)^(2-alpha) Omega_ij
+    double alpha = 2.0;
+
+    // The parameter that sets the nature of the Omega rapidity term;
+    // only change the default of 3-alpha if you are sure you know what you are doing
+    double omega = 3.0 - alpha;
+
+    // auto* plugin = new fastjet::contrib::IFNPlugin(base_jet_def, alpha, omega, fastjet::contrib::FlavRecombiner::net);
+    // _def = fastjet::JetDefinition(plugin);
+    // _def.delete_plugin_when_unused();
+    _def = base_jet_def;
+
+    // unsupported for now
+    // if (_recombScheme == fastjet::RecombinationScheme::external_scheme)
+      // _def.set_recombiner(new ExternalRecombiner(_recombination));
+  }
+
+  FCCAnalysesJet flv_clustering_ee_kt::operator()(const std::vector<fastjet::PseudoJet>& input) {
+    //return empty struct
+    if (FCCAnalyses::JetClusteringUtils::check(input.size(), _exclusive, _cut) == false)
+      return FCCAnalyses::JetClusteringUtils::initialise_FCCAnalysesJet();
+
+    _cs = fastjet::ClusterSequence(input, _def);
+
+    //cluster jets
+    std::vector<fastjet::PseudoJet> pjets = FCCAnalyses::JetClusteringUtils::build_jets(_cs, _exclusive, _cut, _sorted);
+    //get dmerged elements
+    std::vector<float> dmerge = FCCAnalyses::JetClusteringUtils::exclusive_dmerge(_cs, 0);
+    std::vector<float> dmerge_max = FCCAnalyses::JetClusteringUtils::exclusive_dmerge(_cs, 1);
+
+    //transform to FCCAnalysesJet
+    return FCCAnalyses::JetClusteringUtils::build_FCCAnalysesJet(pjets, dmerge, dmerge_max);
+  }
+
 }  // namespace JetClustering
