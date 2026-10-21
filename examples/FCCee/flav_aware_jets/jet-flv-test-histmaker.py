@@ -29,6 +29,15 @@ doScale = False
 INCL_EMIN = [0, 5]
 # energy cut scan (GeV) for the inclusive jet multiplicity: first value, step, number of values
 ECUT_SCAN = (0., 1., 61)
+# log10(ycut) scan for the exclusive ee_kt + IFN jets at parton level: first value, step, number of values
+YCUT_SCAN = (-7., 0.1, 70)
+
+# Event categories of the ycut scan (histogram parton_ifn_ycut_vs_category, one entry per event and ycut):
+# category = min(N_jets, 5) - 1 for clean events and 5 + min(N_jets, 5) - 1 for unclean ones, i.e.
+#   0-4 clean with 1, 2, 3, 4, >=5 jets          5-9 unclean with 1, 2, 3, 4, >=5 jets
+# Clean: every jet carries at most one unit of flavour and
+#   H -> q qbar: one jet has q content +1 and one -1 (the other jets are gluon jets or resolved g -> q' qbar' pairs)
+#   H -> gg: N_jets >= 2 + N_flavoured_jets / 2 (each gluon gives one flavourless jet or a resolved q' qbar' pair)
 
 # Per-jet flavour categories (histograms <level>_<alg>_jets_category, one entry per jet). q is the Higgs decay
 # flavour of the sample, a quark counts +1 and an antiquark -1.
@@ -180,6 +189,35 @@ def build_graph(df, dataset):
         }}
         return cat;""")
     results.append(df.Histo1D(("parton_getflav_jets_category", "", 4, 0., 4.), "parton_getflav_jets_category"))
+
+    # Scan of the exclusive ee_kt + IFN clustering at parton level over ycut, from a single clustering per
+    # event. The jet flavours are the IFN flavours at the stage of the clustering where the jets exist.
+    y0, dy, ny = YCUT_SCAN
+    ycuts = ", ".join(f"{10 ** (y0 + i * dy):.6e}f" for i in range(ny))
+    df = df.Define("parton_ifn_ycut_scan", f"JetClustering::flv_ifn_ycut_scan_ee_kt({{{ycuts}}})(parton_pseudo_jets)")
+    df = df.Define("parton_ifn_ycut_category", f"""
+        const int q = {FLAVOUR_PDG.get(higgs_q, -1)};
+        ROOT::VecOps::RVec<int> cat(parton_ifn_ycut_scan.size());
+        for (size_t s = 0; s < cat.size(); ++s) {{
+            const auto& jets = parton_ifn_ycut_scan[s].jets;
+            ROOT::VecOps::RVec<int> n_abs(jets.size(), 0);
+            for (int k = 1; k <= 5; ++k)
+                n_abs += abs(FCCAnalyses::JetClusteringUtils::get_flavour_content(jets, k));
+            const int n_jets = jets.size();
+            const int n_flav = Sum(n_abs > 0);
+            bool clean = n_jets > 0 && All(n_abs <= 1);
+            if (q > 0) {{
+                const auto nq = FCCAnalyses::JetClusteringUtils::get_flavour_content(jets, q);
+                clean &= Any(nq == 1) && Any(nq == -1);
+            }} else {{
+                clean &= n_jets >= 2 + n_flav / 2;
+            }}
+            cat[s] = (clean ? 0 : 5) + std::max(std::min(n_jets, 5), 1) - 1;
+        }}
+        return cat;""")
+    # x positions for the ycut scan: the centre of the bin [log10(ycut), log10(ycut) + step)
+    df = df.Define("ycut_scan_values", f"ROOT::VecOps::RVec<float> x({ny}); for (int i = 0; i < {ny}; ++i) x[i] = {y0} + (i + 0.5) * {dy}; return x;")
+    results.append(df.Histo2D(("parton_ifn_ycut_vs_category", "", ny, y0, y0 + ny * dy, 10, 0., 10.), "ycut_scan_values", "parton_ifn_ycut_category"))
 
     # Clean flavour signature at parton level (IFN): for H -> q qbar the jets carry q content +-1 and no
     # other flavour, for H -> gg neither jet carries any flavour. The two jets always have opposite flavour

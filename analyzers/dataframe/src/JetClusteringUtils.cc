@@ -291,6 +291,18 @@ std::vector<fastjet::PseudoJet>
 build_jets(fastjet::ClusterSequence &cs, int exclusive, float cut, int sorted) {
   std::vector<fastjet::PseudoJet> pjets;
 
+  // The clustering functors copy-assign their ClusterSequence, and
+  // ClusterSequence::transfer_from_sequence does not copy Q, so
+  // cs.exclusive_jets_ycut() would use an uninitialised Q. Compute Q (the sum
+  // of the input energies, as FastJet does) and use the dcut instead.
+  if (exclusive == 4) {
+    double Q = 0.;
+    for (unsigned int i = 0; i < cs.n_particles(); ++i)
+      Q += cs.jets()[i].E();
+    exclusive = 1;
+    cut = cut * Q * Q;
+  }
+
   if (sorted == 0) {
     if (exclusive == 0)
       pjets = fastjet::sorted_by_pt(cs.inclusive_jets(cut));

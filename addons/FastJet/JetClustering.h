@@ -232,8 +232,20 @@ namespace JetClustering {
     fastjet::JetAlgorithm _jetAlgorithm{fastjet::JetAlgorithm::undefined_jet_algorithm};  ///<internal jet algorithm
     fastjet::RecombinationScheme _recombScheme;  ///<internal recombination scheme
     fastjet::ClusterSequence _cs;                ///<internal clustering sequence
-    fastjet::JetDefinition _base_jet_def;                 ///<internal jetdefinition sequence
     fastjet::JetDefinition _def;                 ///<internal jetdefinition sequence
+  };
+
+  ///Flavour-aware ee_kt clustering with IFN: exclusive jets for each of several ycut values, all from a single clustering.
+  ///The jet flavours are the IFN flavours at the stage of the clustering where these exclusive jets exist.
+  struct flv_ifn_ycut_scan_ee_kt {
+  public:
+    flv_ifn_ycut_scan_ee_kt(const std::vector<float>& arg_ycuts, int arg_sorted = 0);
+    std::vector<FCCAnalysesJet> operator()(const std::vector<fastjet::PseudoJet>& jets);
+
+    std::vector<float> _ycuts;  ///< ycut values, one FCCAnalysesJet (exclusive jets at that ycut) per value
+    int _sorted;                ///< pT ordering=0, E ordering=1
+    fastjet::ClusterSequence _cs;  ///<internal clustering sequence
+    fastjet::JetDefinition _def;   ///<internal jetdefinition sequence
   };
 
   ///Flavour-aware Jet Clustering interface for ee_kt with net flavour summation (no IFN, not IR safe)
